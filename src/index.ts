@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 /**
- * ScaleX CLI — agent interface for the GTX CLOB DEX
+ * ScaleX CLI — agent interface for the ScaleX DEX
  *
  * Usage:
  *   scalex market markets
@@ -31,7 +31,7 @@ import { router }     from './commands/write/router.js'
 import { prediction } from './commands/write/prediction.js'
 
 Cli.create('scalex', {
-  description: 'ScaleX CLI — agent-native interface to the GTX CLOB DEX. Query markets, manage orders, and execute on-chain transactions.',
+  description: 'ScaleX CLI — agent-native interface to the ScaleX DEX. Query markets, manage orders, and execute on-chain transactions.',
   version: '1.0.0',
 })
   // ── Read (API) ─────────────────────────────────────────────────────────────

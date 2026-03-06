@@ -1,6 +1,6 @@
 # ScaleX CLI
 
-Agent-native CLI for the GTX CLOB DEX, built with [incur](https://github.com/wevm/incur).
+Agent-native CLI for the ScaleX DEX, built with [incur](https://github.com/wevm/incur).
 
 Query market data, manage orders, and execute on-chain transactions — from terminal or directly from AI agents with 3x fewer tokens than MCP alternatives.
 

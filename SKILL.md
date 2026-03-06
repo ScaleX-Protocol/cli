@@ -1,7 +1,7 @@
 ---
 name: scalex
 description: >
-  ScaleX CLI — query and interact with the GTX CLOB DEX. Use when you need to
+  ScaleX CLI — query and interact with the ScaleX DEX. Use when you need to
   read market data (prices, candles, depth, trades), inspect orders/balances/positions,
   check agent stats or leaderboard, view lending or prediction markets, or execute
   on-chain transactions (place/cancel orders, deposit/withdraw, predict, borrow/repay).
@@ -11,7 +11,7 @@ allowed-tools: Bash
 
 # ScaleX CLI
 
-You have access to the ScaleX CLI for interacting with the GTX CLOB DEX on Base Sepolia.
+You have access to the ScaleX CLI for interacting with the ScaleX DEX on Base Sepolia.
 
 **Run commands with:**
 ```bash
