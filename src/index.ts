@@ -1,0 +1,55 @@
+#!/usr/bin/env bun
+/**
+ * ScaleX CLI — agent interface for the GTX CLOB DEX
+ *
+ * Usage:
+ *   scalex market markets
+ *   scalex agent self-limit-order --symbol ETH-USDC --side BUY --price 2000 --quantity 0.1
+ *   scalex --help
+ */
+
+import { Cli } from 'incur'
+
+// Read commands
+import { market }      from './commands/market.js'
+import { orders }      from './commands/orders.js'
+import { agents }      from './commands/agents.js'
+import { leaderboard } from './commands/leaderboard.js'
+import { predictions } from './commands/predictions.js'
+import { lending }     from './commands/lending.js'
+import { activity }    from './commands/activity.js'
+import { policies }    from './commands/policies.js'
+import { currencies }  from './commands/currencies.js'
+import { trades }      from './commands/trades.js'
+import { wallets }     from './commands/wallets.js'
+import { faucet }      from './commands/faucet.js'
+
+// Write commands
+import { agent }      from './commands/write/agent.js'
+import { balance }    from './commands/write/balance.js'
+import { router }     from './commands/write/router.js'
+import { prediction } from './commands/write/prediction.js'
+
+Cli.create('scalex', {
+  description: 'ScaleX CLI — agent-native interface to the GTX CLOB DEX. Query markets, manage orders, and execute on-chain transactions.',
+  version: '1.0.0',
+})
+  // ── Read (API) ─────────────────────────────────────────────────────────────
+  .command(market)
+  .command(orders)
+  .command(agents)
+  .command(leaderboard)
+  .command(predictions)
+  .command(lending)
+  .command(activity)
+  .command(policies)
+  .command(currencies)
+  .command(trades)
+  .command(wallets)
+  .command(faucet)
+  // ── Write (on-chain) ───────────────────────────────────────────────────────
+  .command(agent)
+  .command(balance)
+  .command(router)
+  .command(prediction)
+  .serve()
