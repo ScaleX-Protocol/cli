@@ -1,6 +1,6 @@
 # ScaleX CLI
 
-Agent-native CLI for the ScaleX DEX, built with [incur](https://github.com/wevm/incur).
+Agent-native CLI for ScaleX, built with [incur](https://github.com/wevm/incur).
 
 Query market data, manage orders, and execute on-chain transactions — from terminal or directly from AI agents with 3x fewer tokens than MCP alternatives.
 
@@ -95,7 +95,7 @@ scalex agent self-market-order --symbol ETH-USDC --side SELL --quantity 0.05
 # Cancel an order
 scalex agent cancel-self-order --symbol ETH-USDC --order-id 42
 
-# Deposit tokens to DEX
+# Deposit tokens
 scalex balance deposit --token 0x... --amount 100
 
 # Borrow from lending pool (agent)

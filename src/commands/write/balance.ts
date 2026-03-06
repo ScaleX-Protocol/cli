@@ -1,6 +1,6 @@
 /**
  * BalanceManager write commands.
- * Direct deposit/withdraw to the DEX balance manager.
+ * Direct deposit/withdraw to the ScaleX balance manager.
  */
 
 import { Cli, z } from 'incur'
@@ -13,9 +13,9 @@ async function getDecimals(token: Address): Promise<number> {
   return publicClient().readContract({ address: token, abi: ERC20ABI, functionName: 'decimals' }) as Promise<number>
 }
 
-export const balance = Cli.create('balance', { description: 'BalanceManager — deposit and withdraw tokens from the DEX' })
+export const balance = Cli.create('balance', { description: 'BalanceManager — deposit and withdraw tokens from the ScaleX' })
   .command('deposit', {
-    description: 'Deposit tokens into the DEX BalanceManager',
+    description: 'Deposit tokens into the ScaleX BalanceManager',
     options: z.object({
       token:  z.string().describe('Token contract address'),
       amount: z.string().describe('Amount to deposit in human-readable units'),
@@ -57,7 +57,7 @@ export const balance = Cli.create('balance', { description: 'BalanceManager — 
     },
   })
   .command('withdraw', {
-    description: 'Withdraw tokens from the DEX BalanceManager to caller wallet',
+    description: 'Withdraw tokens from the ScaleX BalanceManager to caller wallet',
     options: z.object({
       token:  z.string().describe('Token contract address'),
       amount: z.string().describe('Amount to withdraw in human-readable units'),

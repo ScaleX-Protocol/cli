@@ -1,7 +1,7 @@
 {
   "name": "scalex-cli",
   "version": "1.0.0",
-  "description": "ScaleX CLI — agent interface for the ScaleX DEX",
+  "description": "ScaleX CLI — agent interface for ScaleX",
   "type": "module",
   "bin": {
     "scalex": "./dist/index.js"

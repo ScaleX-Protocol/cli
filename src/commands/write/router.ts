@@ -1,6 +1,6 @@
 /**
  * ScaleXRouter write commands.
- * Direct DEX router: cancel orders, borrow, repay, deposit.
+ * Direct ScaleX router: cancel orders, borrow, repay, deposit.
  */
 
 import { Cli, z } from 'incur'
@@ -82,7 +82,7 @@ export const router = Cli.create('router', { description: 'ScaleXRouter — canc
     },
   })
   .command('deposit', {
-    description: 'Deposit tokens into the DEX via ScaleXRouter',
+    description: 'Deposit tokens into the ScaleX via ScaleXRouter',
     options: z.object({
       token:  z.string().describe('Token address to deposit'),
       amount: z.string().describe('Amount in human-readable units'),
