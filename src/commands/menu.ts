@@ -46,12 +46,11 @@ async function printHeader() {
   const bottom = `╚${'═'.repeat(width)}╝`
   const pad    = (s: string, n: number) => s + ' '.repeat(Math.max(0, n - stripAnsi(s).length))
 
-  const logo   = `${orangeBg(bold('  S '))} ${orange(bold('ScaleX'))} ${white('CLI')}`
-  const tag    = dim('agent-native interface · Base Sepolia')
+  const tag = dim('agent-native interface · Base Sepolia')
 
   console.log()
   console.log(dim(top))
-  console.log(`${dim('║')} ${pad(logo, width - 2)} ${dim('║')}`)
+  console.log(`${dim('║')} ${pad(orange(bold('ScaleX CLI')), width - 2)} ${dim('║')}`)
   console.log(`${dim('║')} ${pad(tag, width - 2)} ${dim('║')}`)
   console.log(`${dim('║')} ${pad(agentLabel, width - 2)} ${dim('║')}`)
   console.log(dim(bottom))
