@@ -92,16 +92,38 @@ async function promptSelect<T extends string>(
   return cancelled(v) ? null : (v as T)
 }
 
+// Convert camelCase to snake_case
+function toSnake(s: string) {
+  return s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`)
+}
+
+// Shorten hex strings and long values for display
+function fmt(v: unknown): string {
+  const s = String(v ?? '')
+  // hex address/hash: shorten to 0x1234…abcd
+  if (/^0x[a-fA-F0-9]{10,}$/.test(s)) return `${s.slice(0, 8)}…${s.slice(-4)}`
+  return s
+}
+
 function printResult(data: unknown) {
   const payload = (data as any)?.data ?? data
 
   // Array → table
   if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object') {
-    const rows  = payload as Record<string, unknown>[]
-    const keys  = Object.keys(rows[0])
-    const cols  = keys.map(k => ({
+    const rows = payload as Record<string, unknown>[]
+    const allKeys = Object.keys(rows[0])
+    const snakeSet = new Set(allKeys.filter(k => k.includes('_')))
+
+    // Drop camelCase keys that duplicate a snake_case key already present
+    const keys = allKeys.filter(k => {
+      if (!/[A-Z]/.test(k)) return true          // already snake/lower — keep
+      return !snakeSet.has(toSnake(k))            // drop if snake twin exists
+    })
+
+    const MAX_COL = 20
+    const cols = keys.map(k => ({
       key: k,
-      width: Math.min(30, Math.max(k.length, ...rows.map(r => String(r[k] ?? '').length))),
+      width: Math.min(MAX_COL, Math.max(k.length, ...rows.map(r => fmt(r[k]).length))),
     }))
 
     const header = cols.map(c => orange(c.key.padEnd(c.width))).join('  ')
@@ -109,7 +131,7 @@ function printResult(data: unknown) {
     console.log('\n' + header)
     console.log(sep)
     for (const row of rows) {
-      console.log(cols.map(c => String(row[c.key] ?? '').slice(0, c.width).padEnd(c.width)).join('  '))
+      console.log(cols.map(c => fmt(row[c.key]).slice(0, c.width).padEnd(c.width)).join('  '))
     }
     console.log(dim(`\n  ${rows.length} row${rows.length === 1 ? '' : 's'}`))
     return
@@ -121,7 +143,7 @@ function printResult(data: unknown) {
     const keyW = Math.max(...Object.keys(obj).map(k => k.length))
     console.log()
     for (const [k, v] of Object.entries(obj)) {
-      const val = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')
+      const val = typeof v === 'object' ? JSON.stringify(v) : fmt(v)
       console.log(`  ${orange(k.padEnd(keyW))}  ${val}`)
     }
     console.log()
@@ -141,6 +163,7 @@ async function menuAgents() {
     { value: 'stats',      label: 'stats',        hint: 'trading stats' },
     { value: 'orders',     label: 'orders',       hint: 'orders placed by agent' },
     { value: 'all-orders', label: 'all-orders',   hint: 'cross-agent order view' },
+    { value: 'users',      label: 'users',        hint: 'users who authorized this agent' },
     { value: 'policy',     label: 'policy',       hint: 'policy configuration' },
     { value: 'analytics',  label: 'analytics',    hint: 'PnL analytics' },
   ])
@@ -225,6 +248,14 @@ async function menuAgents() {
     const params: any = { limit }
     if (status) params.status = status
     printResult(await fetchAPI(`/api/agents/${agentTokenId}/orders`, params))
+    s.stop('Done')
+  }
+
+  if (cmd === 'users') {
+    const limit = await promptNumber('Limit', 20)
+    if (limit === null) return
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI(`/api/agents/${agentTokenId}/users`, { limit }))
     s.stop('Done')
   }
 }
