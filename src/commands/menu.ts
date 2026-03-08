@@ -503,7 +503,7 @@ export const menuCommand = {
 
       while (true) {
         const section = await promptSelect('Select a section', [
-          { value: 'agents',      label: '🤖  Agents',       hint: 'identity, stats, orders' },
+          { value: 'agents',      label: '🤖  Agents',       hint: 'identity, stats, orders, users' },
           { value: 'market',      label: '📈  Market',        hint: 'pairs, ticker, depth, kline' },
           { value: 'orders',      label: '📋  Orders',        hint: 'all, open, by address' },
           { value: 'predictions', label: '🔮  Predictions',   hint: 'markets, positions, stats' },
