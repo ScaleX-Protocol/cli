@@ -23,6 +23,7 @@ import { currencies }  from './commands/currencies.js'
 import { trades }      from './commands/trades.js'
 import { wallets }     from './commands/wallets.js'
 import { faucet }      from './commands/faucet.js'
+import { menu }        from './commands/menu.js'
 
 // Write commands
 import { agent }      from './commands/write/agent.js'
@@ -47,6 +48,7 @@ Cli.create('scalex', {
   .command(trades)
   .command(wallets)
   .command(faucet)
+  .command(menu)
   // ── Write (on-chain) ───────────────────────────────────────────────────────
   .command(agent)
   .command(balance)
