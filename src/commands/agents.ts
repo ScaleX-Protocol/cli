@@ -69,7 +69,7 @@ export const agents = Cli.create('agents', { description: 'Agent registry — li
     description: 'Get orders placed by an agent',
     options: z.object({
       agentTokenId: z.string().describe('Agent NFT token ID'),
-      status:       z.enum(['open', 'filled', 'cancelled']).optional().describe('Order status filter'),
+      status:       z.enum(['open', 'filled', 'partially_filled', 'cancelled']).optional().describe('Order status filter'),
       chainId:      z.number().optional().describe('Chain ID'),
       limit:        z.number().optional().default(20).describe('Max orders to return'),
       offset:       z.number().optional().default(0).describe('Pagination offset'),
@@ -129,5 +129,19 @@ export const agents = Cli.create('agents', { description: 'Agent registry — li
     async run(c) {
       const { agentTokenId, ...params } = c.options
       return fetchAPI(`/api/agents/${agentTokenId}/analytics`, params)
+    },
+  })
+  .command('all-orders', {
+    description: 'List all agent-placed orders across all agents (cross-agent view)',
+    options: z.object({
+      chainId:  z.number().optional().default(84532).describe('Chain ID (default: 84532 Base Sepolia)'),
+      owner:    z.string().optional().describe('Filter by agent owner address'),
+      executor: z.string().optional().describe('Filter by executor address'),
+      status:   z.enum(['open', 'filled', 'partially_filled', 'cancelled', 'rejected']).optional().describe('Order status filter'),
+      limit:    z.number().optional().default(20).describe('Max orders to return'),
+      offset:   z.number().optional().default(0).describe('Pagination offset'),
+    }),
+    async run(c) {
+      return fetchAPI('/api/agent-orders', c.options)
     },
   })

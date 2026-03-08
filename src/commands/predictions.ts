@@ -1,6 +1,10 @@
 import { Cli, z } from 'incur'
 import { fetchAPI } from '../lib/api.js'
 
+// API stores status as integers: active=0, resolved(settled)=2, cancelled=3
+// Status 1 is unconfirmed — not exposed.
+const PREDICTION_STATUS_MAP = { active: 0, resolved: 2, cancelled: 3 } as const
+
 export const predictions = Cli.create('predictions', { description: 'Prediction markets — markets, positions, stats, events' })
   .command('markets', {
     description: 'List prediction markets',
@@ -10,7 +14,8 @@ export const predictions = Cli.create('predictions', { description: 'Prediction 
       limit:   z.number().optional().default(50).describe('Max markets to return'),
     }),
     async run(c) {
-      return fetchAPI('/api/predictions/markets', c.options)
+      const statusInt = c.options.status !== undefined ? PREDICTION_STATUS_MAP[c.options.status] : undefined
+      return fetchAPI('/api/predictions/markets', { ...c.options, status: statusInt })
     },
   })
   .command('stats', {

@@ -6,7 +6,7 @@ export const trades = Cli.create('trades', { description: 'Trade data — initia
     description: 'Get initial trade data for a symbol (order book + recent trades)',
     options: z.object({
       symbol:  z.string().describe('Trading pair, e.g. ETH-USDC'),
-      address: z.string().optional().describe('Wallet address to include user orders'),
+      address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'must be a valid Ethereum address (0x followed by 40 hex characters)').describe('Wallet address to include user orders'),
     }),
     async run(c) {
       return fetchAPI(`/trades/${c.options.symbol}`, { address: c.options.address })
@@ -16,7 +16,7 @@ export const trades = Cli.create('trades', { description: 'Trade data — initia
     description: 'Get open orders for a symbol',
     options: z.object({
       symbol:  z.string().describe('Trading pair, e.g. ETH-USDC'),
-      address: z.string().optional().describe('Wallet address to filter orders'),
+      address: z.string().regex(/^0x[a-fA-F0-9]{40}$/, 'must be a valid Ethereum address (0x followed by 40 hex characters)').describe('Wallet address to filter orders'),
     }),
     async run(c) {
       return fetchAPI(`/trades/${c.options.symbol}/orders`, { address: c.options.address })

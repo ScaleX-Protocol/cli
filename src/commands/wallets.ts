@@ -5,8 +5,7 @@ export const wallets = Cli.create('wallets', { description: 'Wallet registry —
   .command('list', {
     description: 'List all indexed wallets',
     options: z.object({
-      limit:  z.number().optional().default(20).describe('Max wallets to return'),
-      offset: z.number().optional().default(0).describe('Pagination offset'),
+      indices: z.string().regex(/^[0-9,\-]+$/, "must be a range string like '0-19' or '0,2,5'").optional().describe("Wallet index range, e.g. '0-19' for first 20, '0,2,5' for specific indices"),
     }),
     async run(c) {
       return fetchAPI('/wallets', c.options)

@@ -13,6 +13,7 @@ import {
   AgentRouterPredictionABI,
   AgentRouterLendingABI,
   AgentRouterMarketplaceABI,
+  AgentRouterCREABI,
   ERC20ABI,
 } from '../../lib/abis.js'
 import type { Address } from 'viem'
@@ -225,7 +226,12 @@ export const agent = Cli.create('agent', { description: 'AgentRouter — delegat
     description: 'Authorize an agent with a policy (called by user to grant agent access)',
     options: z.object({
       agentTokenId: z.string().optional().describe('Agent NFT token ID (default: $SCALEX_AGENT_TOKEN_ID)'),
-      policy:       z.string().describe('Policy JSON: {"maxOrderSize":"...","maxDailyVolume":"...","allowedPools":[],"enabled":true}'),
+      policy:       z.string().describe(
+        'Policy JSON matching PolicyFactoryStorage.Policy fields. ' +
+        'Required fields: enabled (bool). ' +
+        'All other fields default to 0/false if omitted. ' +
+        'Example: {"enabled":true,"allowMarketOrders":true,"allowLimitOrders":true,"maxOrderSize":"1000000000000000000","whitelistedTokens":[],"blacklistedTokens":[]}'
+      ),
     }),
     async run(c) {
       const wallet = getWalletClient()
@@ -538,5 +544,114 @@ export const agent = Cli.create('agent', { description: 'AgentRouter — delegat
         args: [c.options.user as Address, agentId, c.options.token as Address, parseUnits(c.options.amount, decimals)],
       })
       return { ...(await waitForTx(hash)), user: c.options.user, token: c.options.token, amount: c.options.amount }
+    },
+  })
+
+  // ─── CRE (Chainlink Functions) Queue ──────────────────────────────────────
+  // Only usable when the agent's policy has requiresChainlinkFunctions = true.
+  // Orders are queued for off-chain validation before execution.
+
+  .command('queue-market-order', {
+    description: 'Queue a market order for CRE off-chain validation (requires policy.requiresChainlinkFunctions = true)',
+    options: poolOpts.extend({
+      user:         z.string().describe('User wallet address'),
+      agentTokenId: z.string().optional().describe('Agent NFT token ID (default: $SCALEX_AGENT_TOKEN_ID)'),
+      quantity:     z.string().describe('Quantity in human-readable units'),
+      side:         z.enum(['BUY', 'SELL']).describe('Order side'),
+      minOut:       z.string().optional().default('0').describe('Minimum output amount (slippage protection)'),
+      autoRepay:    z.boolean().optional().default(false).describe('Auto repay borrows after fill'),
+      autoBorrow:   z.boolean().optional().default(false).describe('Auto borrow if insufficient balance'),
+    }),
+    async run(c) {
+      const wallet = getWalletClient()
+      const contracts = getContracts()
+      const agentId = c.options.agentTokenId ? BigInt(c.options.agentTokenId) : getAgentTokenId()
+      const pool = await resolvePool(c.options.symbol, c.options)
+
+      const [baseDecimals, quoteDecimals] = await Promise.all([
+        getDecimals(pool.baseCurrency),
+        getDecimals(pool.quoteCurrency),
+      ])
+      const qtyDecimals = c.options.side === 'BUY' ? quoteDecimals : baseDecimals
+      const outDecimals = c.options.side === 'BUY' ? baseDecimals : quoteDecimals
+      const qtyRaw    = parseUnits(c.options.quantity, qtyDecimals)
+      const minOutRaw = parseUnits(c.options.minOut ?? '0', outDecimals)
+
+      const hash = await wallet.writeContract({
+        address: contracts.agentRouter,
+        abi: AgentRouterCREABI,
+        functionName: 'queueMarketOrder',
+        args: [c.options.user as Address, agentId, pool, SIDE[c.options.side], qtyRaw, minOutRaw, c.options.autoRepay ?? false, c.options.autoBorrow ?? false],
+      })
+      return { ...(await waitForTx(hash)), user: c.options.user, quantity: c.options.quantity, side: c.options.side }
+    },
+  })
+
+  .command('queue-limit-order', {
+    description: 'Queue a limit order for CRE off-chain validation (requires policy.requiresChainlinkFunctions = true)',
+    options: poolOpts.extend({
+      user:         z.string().describe('User wallet address'),
+      agentTokenId: z.string().optional().describe('Agent NFT token ID (default: $SCALEX_AGENT_TOKEN_ID)'),
+      price:        z.string().describe('Limit price in human-readable units'),
+      quantity:     z.string().describe('Quantity in human-readable units'),
+      side:         z.enum(['BUY', 'SELL']).describe('Order side'),
+      tif:          z.enum(['GTC', 'IOC', 'FOK', 'POST_ONLY']).optional().default('GTC').describe('Time in force'),
+      autoRepay:    z.boolean().optional().default(false).describe('Auto repay borrows after fill'),
+      autoBorrow:   z.boolean().optional().default(false).describe('Auto borrow if insufficient balance'),
+    }),
+    async run(c) {
+      const wallet = getWalletClient()
+      const contracts = getContracts()
+      const agentId = c.options.agentTokenId ? BigInt(c.options.agentTokenId) : getAgentTokenId()
+      const pool = await resolvePool(c.options.symbol, c.options)
+
+      const [baseDecimals, quoteDecimals] = await Promise.all([
+        getDecimals(pool.baseCurrency),
+        getDecimals(pool.quoteCurrency),
+      ])
+      const priceRaw = parseUnits(c.options.price, quoteDecimals)
+      const qtyRaw   = parseUnits(c.options.quantity, baseDecimals)
+
+      const hash = await wallet.writeContract({
+        address: contracts.agentRouter,
+        abi: AgentRouterCREABI,
+        functionName: 'queueLimitOrder',
+        args: [c.options.user as Address, agentId, pool, priceRaw, qtyRaw, SIDE[c.options.side], TIF[c.options.tif ?? 'GTC'], c.options.autoRepay ?? false, c.options.autoBorrow ?? false],
+      })
+      return { ...(await waitForTx(hash)), user: c.options.user, price: c.options.price, quantity: c.options.quantity, side: c.options.side }
+    },
+  })
+
+  .command('cancel-pending-order', {
+    description: 'Cancel a queued CRE pending order and unlock reserved funds (callable by user or agent owner)',
+    options: z.object({
+      pendingOrderId: z.number().describe('Pending order ID returned by queue-market-order or queue-limit-order'),
+    }),
+    async run(c) {
+      const wallet = getWalletClient()
+      const contracts = getContracts()
+
+      const hash = await wallet.writeContract({
+        address: contracts.agentRouter,
+        abi: AgentRouterCREABI,
+        functionName: 'cancelPendingOrder',
+        args: [BigInt(c.options.pendingOrderId)],
+      })
+      return { ...(await waitForTx(hash)), pendingOrderId: c.options.pendingOrderId }
+    },
+  })
+
+  .command('get-pending-order', {
+    description: 'Read the state of a CRE pending order (view — no transaction)',
+    options: z.object({
+      pendingOrderId: z.number().describe('Pending order ID to look up'),
+    }),
+    async run(c) {
+      return publicClient().readContract({
+        address: getContracts().agentRouter,
+        abi: AgentRouterCREABI,
+        functionName: 'getPendingOrder',
+        args: [BigInt(c.options.pendingOrderId)],
+      })
     },
   })
