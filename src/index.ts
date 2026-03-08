@@ -8,6 +8,16 @@
  *   scalex --help
  */
 
+// Load global config from ~/.config/scalex/.env, then fall back to CWD .env
+import { existsSync } from 'fs'
+import { join } from 'path'
+
+const globalEnv = join(process.env.HOME ?? '~', '.config', 'scalex', '.env')
+if (existsSync(globalEnv)) {
+  const { config } = await import('dotenv')
+  config({ path: globalEnv, override: false, quiet: true })
+}
+
 import { Cli } from 'incur'
 
 // Read commands
