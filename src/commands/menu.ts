@@ -97,6 +97,65 @@ function toSnake(s: string) {
   return s.replace(/[A-Z]/g, c => `_${c.toLowerCase()}`)
 }
 
+// Per-shape column whitelists — detected by presence of signature keys
+const COLUMN_PRESETS: { detect: string[]; cols: string[] }[] = [
+  // Orders (agent orders, all-orders, openOrders, allOrders)
+  {
+    detect: ['order_id', 'side', 'status', 'price', 'quantity'],
+    cols: ['order_id', 'side', 'type', 'status', 'price', 'quantity', 'filled', 'user_address', 'timestamp'],
+  },
+  // Agent list
+  {
+    detect: ['agentTokenId', 'totalUsers', 'totalOrders'],
+    cols: ['agentTokenId', 'owner', 'totalUsers', 'activeUsers', 'totalOrders', 'totalVolume', 'lastActivityAt'],
+  },
+  // Leaderboard
+  {
+    detect: ['rank', 'realizedPnl', 'fillRate'],
+    cols: ['rank', 'type', 'address', 'totalVolume', 'realizedPnl', 'winRate', 'fillRate', 'totalTrades'],
+  },
+  // Market trades
+  {
+    detect: ['qty', 'isBuyerMaker', 'isBestMatch'],
+    cols: ['price', 'qty', 'time', 'isBuyerMaker'],
+  },
+  // 24hr ticker
+  {
+    detect: ['lastPrice', 'priceChange', 'quoteVolume'],
+    cols: ['symbol', 'lastPrice', 'priceChange', 'priceChangePercent', 'highPrice', 'lowPrice', 'volume', 'quoteVolume'],
+  },
+  // Agent users
+  {
+    detect: ['owner', 'enabled', 'policy'],
+    cols: ['owner', 'enabled'],
+  },
+  // Markets
+  {
+    detect: ['symbol', 'baseAsset', 'quoteAsset', 'poolId', 'latestPrice'],
+    cols: ['symbol', 'latestPrice', 'volume', 'volumeInQuote', 'bidLiquidity', 'askLiquidity'],
+  },
+  // Pairs
+  {
+    detect: ['symbol', 'baseAsset', 'quoteAsset', 'poolId', 'baseDecimals'],
+    cols: ['symbol', 'baseAsset', 'quoteAsset', 'poolId'],
+  },
+  // Prediction markets
+  {
+    detect: ['marketId', 'strikePrice', 'totalUp', 'totalDown'],
+    cols: ['marketId', 'status', 'baseToken', 'strikePrice', 'startTime', 'endTime', 'totalUp', 'totalDown', 'outcome'],
+  },
+]
+
+function pickColumns(keys: string[]): string[] | null {
+  const keySet = new Set(keys)
+  for (const preset of COLUMN_PRESETS) {
+    if (preset.detect.every(k => keySet.has(k))) {
+      return preset.cols.filter(c => keySet.has(c))
+    }
+  }
+  return null
+}
+
 // Shorten hex strings and long values for display
 function fmt(v: unknown): string {
   if (v === null || v === undefined) return ''
@@ -120,10 +179,13 @@ function printResult(data: unknown) {
     const snakeSet = new Set(allKeys.filter(k => k.includes('_')))
 
     // Drop camelCase keys that duplicate a snake_case key already present
-    const keys = allKeys.filter(k => {
-      if (!/[A-Z]/.test(k)) return true          // already snake/lower — keep
-      return !snakeSet.has(toSnake(k))            // drop if snake twin exists
+    const deduped = allKeys.filter(k => {
+      if (!/[A-Z]/.test(k)) return true
+      return !snakeSet.has(toSnake(k))
     })
+
+    // Apply column preset if one matches, otherwise show all deduped keys
+    const keys = pickColumns(deduped) ?? deduped
 
     const MAX_COL = 20
     const cols = keys.map(k => ({
