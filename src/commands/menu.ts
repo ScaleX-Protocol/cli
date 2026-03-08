@@ -99,7 +99,12 @@ function toSnake(s: string) {
 
 // Shorten hex strings and long values for display
 function fmt(v: unknown): string {
-  const s = String(v ?? '')
+  if (v === null || v === undefined) return ''
+  if (typeof v === 'object') {
+    const s = JSON.stringify(v)
+    return s.length > 30 ? s.slice(0, 27) + '…' : s
+  }
+  const s = String(v)
   // hex address/hash: shorten to 0x1234…abcd
   if (/^0x[a-fA-F0-9]{10,}$/.test(s)) return `${s.slice(0, 8)}…${s.slice(-4)}`
   return s
