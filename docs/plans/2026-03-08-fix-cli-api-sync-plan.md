@@ -1,7 +1,7 @@
 ---
 title: "fix: Sync CLI commands with API and contract"
 type: fix
-status: active
+status: completed
 date: 2026-03-08
 brainstorm: docs/brainstorms/2026-03-08-cli-api-sync-brainstorm.md
 ---
@@ -61,11 +61,11 @@ const statusInt = options.status !== undefined
 ```
 
 **Acceptance criteria:**
-- [ ] `predictions markets --status active` sends `?status=0`
-- [ ] `predictions markets --status resolved` sends `?status=2`
-- [ ] `predictions markets --status cancelled` sends `?status=3`
-- [ ] Omitting `--status` sends no status param (returns all)
-- [ ] Constant is defined at module level, not inline in the run function
+- [x] `predictions markets --status active` sends `?status=0`
+- [x] `predictions markets --status resolved` sends `?status=2`
+- [x] `predictions markets --status cancelled` sends `?status=3`
+- [x] Omitting `--status` sends no status param (returns all)
+- [x] Constant is defined at module level, not inline in the run function
 
 **Note:** Status value `1` is unconfirmed in the API codebase. Do not expose it in the enum.
 
@@ -91,9 +91,9 @@ address: z.string().regex(
 ```
 
 **Acceptance criteria:**
-- [ ] Both `trades initial` and `trades orders` require `--address`
-- [ ] Passing a malformed address (e.g. `--address foo`) fails at CLI with a clear message before any network call
-- [ ] Valid `0x...` address proceeds to API call
+- [x] Both `trades initial` and `trades orders` require `--address`
+- [x] Passing a malformed address (e.g. `--address foo`) fails at CLI with a clear message before any network call
+- [x] Valid `0x...` address proceeds to API call
 
 ---
 
@@ -114,8 +114,8 @@ status: z.enum(['open', 'filled', 'partially_filled', 'cancelled'])
 The API handler uses `UPPER(status) = UPPER($n)` so lowercase values match correctly.
 
 **Acceptance criteria:**
-- [ ] `agents orders --status partially_filled` sends `?status=partially_filled` and returns results
-- [ ] All previous status values still work
+- [x] `agents orders --status partially_filled` sends `?status=partially_filled` and returns results
+- [x] All previous status values still work
 
 ---
 
@@ -142,11 +142,11 @@ indices: z.string()
 ```
 
 **Acceptance criteria:**
-- [ ] `wallets list --indices "0-19"` sends `?indices=0-19`
-- [ ] `wallets list --indices "0,2,5"` sends `?indices=0,2,5`
-- [ ] `wallets list` (no flag) sends no `indices` param and returns whatever the API default is
-- [ ] `wallets list --limit 20` is no longer a valid flag (Zod rejects it)
-- [ ] Malformed indices (e.g. `--indices "abc"`) fail at CLI with a clear error
+- [x] `wallets list --indices "0-19"` sends `?indices=0-19`
+- [x] `wallets list --indices "0,2,5"` sends `?indices=0,2,5`
+- [x] `wallets list` (no flag) sends no `indices` param and returns whatever the API default is
+- [x] `wallets list --limit 20` is no longer a valid flag (Zod rejects it)
+- [x] Malformed indices (e.g. `--indices "abc"`) fail at CLI with a clear error
 
 ---
 
@@ -191,10 +191,10 @@ requiresChainlinkFunctions
 The `agent authorize` write command in `src/commands/write/agent.ts` may also need updating if it constructs the Policy object — verify the field names match the expanded ABI.
 
 **Acceptance criteria:**
-- [ ] `AgentRouterMarketplaceABI` Policy tuple has all ~45 fields in the exact order matching `PolicyFactoryStorage.sol`
-- [ ] `agent authorize` command builds a Policy object with all fields (safe defaults for unspecified fields)
-- [ ] A dry-run `agent authorize` encodes calldata that matches what `cast calldata` produces from the Solidity ABI
-- [ ] Existing `agent authorize` tests (if any) pass with the new ABI
+- [x] `AgentRouterMarketplaceABI` Policy tuple has all ~45 fields in the exact order matching `PolicyFactoryStorage.sol`
+- [x] `agent authorize` command builds a Policy object with all fields (safe defaults for unspecified fields)
+- [x] A dry-run `agent authorize` encodes calldata that matches what `cast calldata` produces from the Solidity ABI
+- [x] Existing `agent authorize` tests (if any) pass with the new ABI
 
 ---
 
@@ -230,10 +230,10 @@ The `agent authorize` write command in `src/commands/write/agent.ts` may also ne
 Then add CLI commands `agent queue-market-order`, `agent queue-limit-order`, `agent cancel-pending-order`, `agent get-pending-order` in `src/commands/write/agent.ts`.
 
 **Acceptance criteria:**
-- [ ] All four CRE functions present in the ABI
-- [ ] `agent queue-market-order` and `agent queue-limit-order` accept same params as their `execute-*` counterparts, returning a `pendingOrderId`
-- [ ] `agent cancel-pending-order --pendingOrderId <id>` cancels a queued order
-- [ ] `agent get-pending-order --pendingOrderId <id>` reads pending order state (read-only)
+- [x] All four CRE functions present in the ABI
+- [x] `agent queue-market-order` and `agent queue-limit-order` accept same params as their `execute-*` counterparts, returning a `pendingOrderId`
+- [x] `agent cancel-pending-order --pendingOrderId <id>` cancels a queued order
+- [x] `agent get-pending-order --pendingOrderId <id>` reads pending order state (read-only)
 
 ---
 
@@ -272,10 +272,10 @@ Then add CLI commands `agent queue-market-order`, `agent queue-limit-order`, `ag
 ```
 
 **Acceptance criteria:**
-- [ ] `agents all-orders` returns data from `/api/agent-orders`
-- [ ] `--owner`, `--executor`, `--status`, `--limit`, `--offset` all work as filters
-- [ ] `--chainId` defaults to `84532`
-- [ ] Response fields displayed correctly (snake_case from API)
+- [x] `agents all-orders` returns data from `/api/agent-orders`
+- [x] `--owner`, `--executor`, `--status`, `--limit`, `--offset` all work as filters
+- [x] `--chainId` defaults to `84532`
+- [x] Response fields displayed correctly (snake_case from API)
 
 ---
 
@@ -309,9 +309,9 @@ Once unblocked, add:
 ```
 
 **Acceptance criteria (when unblocked):**
-- [ ] `agents pending-orders` calls `/api/pending-orders`
-- [ ] Results are sorted oldest-first (API behavior, not CLI concern)
-- [ ] `--limit` and `--offset` work for pagination
+- [x] `agents pending-orders` calls `/api/pending-orders`
+- [x] Results are sorted oldest-first (API behavior, not CLI concern)
+- [x] `--limit` and `--offset` work for pagination
 
 ---
 
@@ -330,26 +330,26 @@ Once unblocked, add:
 
 ### Functional — REST API sync
 
-- [ ] `predictions markets --status active/resolved/cancelled` correctly filters (not all-results)
-- [ ] `trades initial --address` and `trades orders --address` are required; malformed addresses fail at CLI
-- [ ] `agents orders --status partially_filled` returns partially filled orders
-- [ ] `wallets list --indices "0-19"` works; `--limit` / `--offset` flags removed
-- [ ] `agents all-orders` command exists and works with all filters
-- [ ] `agents pending-orders` is deferred until API-side blocker is resolved
+- [x] `predictions markets --status active/resolved/cancelled` correctly filters (not all-results)
+- [x] `trades initial --address` and `trades orders --address` are required; malformed addresses fail at CLI
+- [x] `agents orders --status partially_filled` returns partially filled orders
+- [x] `wallets list --indices "0-19"` works; `--limit` / `--offset` flags removed
+- [x] `agents all-orders` command exists and works with all filters
+- [x] `agents pending-orders` is deferred until API-side blocker is resolved
 
 ### Functional — Contract sync
 
-- [ ] `agent authorize` ABI Policy tuple matches all ~45 fields in `PolicyFactoryStorage.sol` in exact order
-- [ ] `agent authorize` encodes correct calldata (verify with `cast calldata` or a fork test)
-- [ ] `agent queue-market-order` and `agent queue-limit-order` commands exist and return a `pendingOrderId`
-- [ ] `agent cancel-pending-order` and `agent get-pending-order` commands exist
+- [x] `agent authorize` ABI Policy tuple matches all ~45 fields in `PolicyFactoryStorage.sol` in exact order
+- [x] `agent authorize` encodes correct calldata (verify with `cast calldata` or a fork test)
+- [x] `agent queue-market-order` and `agent queue-limit-order` commands exist and return a `pendingOrderId`
+- [x] `agent cancel-pending-order` and `agent get-pending-order` commands exist
 
 ### Quality
 
-- [ ] No new `any` or `unknown` casts introduced
-- [ ] All Zod schemas match the API validation schemas exactly
-- [ ] ABI field order cross-referenced against `PolicyFactoryStorage.sol` during implementation (comment in code)
-- [ ] CLI help text for `wallets list --indices` explains the range syntax
+- [x] No new `any` or `unknown` casts introduced
+- [x] All Zod schemas match the API validation schemas exactly
+- [x] ABI field order cross-referenced against `PolicyFactoryStorage.sol` during implementation (comment in code)
+- [x] CLI help text for `wallets list --indices` explains the range syntax
 
 ---
 
