@@ -25,17 +25,35 @@ export const agents = Cli.create('agents', { description: 'Agent registry — li
         }
       }
 
-      const [info, stats, orders] = await Promise.all([
-        fetchAPI(`/api/agents/${agentTokenId}`),
+      const [listRes, stats, orders] = await Promise.all([
+        fetchAPI('/api/agents', { limit: 100 }),
         fetchAPI(`/api/agents/${agentTokenId}/stats`),
         fetchAPI(`/api/agents/${agentTokenId}/orders`, { status: 'open', limit: 1 }),
       ])
+
+      const listEntry = (listRes as any)?.data?.find(
+        (a: any) => String(a.agentTokenId) === String(agentTokenId)
+      )
+      const metadataURI = listEntry?.metadataURI
+
+      let metadata: Record<string, unknown> | undefined
+      if (metadataURI) {
+        try {
+          const res = await fetch(metadataURI)
+          metadata = await res.json() as Record<string, unknown>
+        } catch {}
+      }
 
       return {
         configured: true,
         walletAddress: walletAddress ?? '(PRIVATE_KEY not set)',
         agentTokenId,
-        info,
+        name:        metadata?.name,
+        description: metadata?.description,
+        image:       metadata?.image,
+        attributes:  metadata?.attributes,
+        metadataURI,
+        registeredAt: listEntry?.registeredAt,
         stats,
         openOrders: (orders as any)?.count ?? 0,
       }
