@@ -260,70 +260,139 @@ async function menuAgents() {
   }
 }
 
+// Fetch markets list and let user pick one; returns poolId
+async function pickMarket(): Promise<string | null> {
+  const s = p.spinner(); s.start('Loading markets…')
+  const res: any = await fetchAPI('/api/markets')
+  s.stop('')
+  const markets: any[] = Array.isArray(res) ? res : (res?.data ?? [])
+  if (!markets.length) { p.log.error('No markets found'); return null }
+  const choice = await promptSelect('Select market', markets.map((m: any) => ({
+    value: m.poolId as string,
+    label: m.symbol as string,
+    hint: `price: ${m.latestPrice}`,
+  })))
+  return choice
+}
+
 async function menuMarket() {
   const cmd = await promptSelect('Market data', [
-    { value: 'pairs',   label: 'pairs',   hint: 'all trading pairs' },
-    { value: 'ticker',  label: 'ticker',  hint: '24h ticker for a pair' },
-    { value: 'depth',   label: 'depth',   hint: 'order book depth' },
-    { value: 'trades',  label: 'trades',  hint: 'recent trades' },
-    { value: 'kline',   label: 'kline',   hint: 'candlestick data' },
+    { value: 'markets',     label: 'markets',     hint: 'all markets with pool details' },
+    { value: 'pairs',       label: 'pairs',        hint: 'all trading pairs' },
+    { value: 'ticker-all',  label: 'ticker-all',   hint: '24h ticker for all pairs' },
+    { value: 'ticker-24hr', label: 'ticker-24hr',  hint: '24h ticker for a pair' },
+    { value: 'ticker-price',label: 'ticker-price', hint: 'current price for a pair' },
+    { value: 'depth',       label: 'depth',        hint: 'order book depth' },
+    { value: 'trades',      label: 'trades',       hint: 'recent trades' },
+    { value: 'kline',       label: 'kline',        hint: 'candlestick data' },
   ])
   if (!cmd) return
 
-  if (cmd === 'pairs') {
+  if (cmd === 'markets') {
     const s = p.spinner(); s.start('Fetching…')
-    printResult(await fetchAPI('/api/market/pairs'))
+    printResult(await fetchAPI('/api/markets'))
     s.stop('Done')
     return
   }
 
-  const symbol = await promptText('Symbol', 'ETH-USDC')
-  if (!symbol) return
-
-  const s = p.spinner(); s.start('Fetching…')
-  if (cmd === 'ticker') printResult(await fetchAPI(`/api/market/ticker/${symbol}`))
-  if (cmd === 'depth')  printResult(await fetchAPI(`/api/market/depth/${symbol}`))
-  if (cmd === 'trades') printResult(await fetchAPI(`/api/market/trades/${symbol}`))
-  if (cmd === 'kline') {
-    s.stop('')
-    const interval = await promptSelect('Interval', [
-      { value: '1m', label: '1m' }, { value: '5m', label: '5m' },
-      { value: '15m', label: '15m' }, { value: '1h', label: '1h' },
-      { value: '4h', label: '4h' }, { value: '1d', label: '1d' },
-    ])
-    if (!interval) return
-    const s2 = p.spinner(); s2.start('Fetching…')
-    printResult(await fetchAPI(`/api/market/kline/${symbol}`, { interval }))
-    s2.stop('Done')
+  if (cmd === 'pairs') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/pairs'))
+    s.stop('Done')
     return
   }
-  s.stop('Done')
+
+  if (cmd === 'ticker-all') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/ticker/24hr/all'))
+    s.stop('Done')
+    return
+  }
+
+  const poolId = await pickMarket()
+  if (!poolId) return
+
+  if (cmd === 'ticker-24hr') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/ticker/24hr', { symbol: poolId }))
+    s.stop('Done')
+    return
+  }
+
+  if (cmd === 'ticker-price') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/ticker/price', { symbol: poolId }))
+    s.stop('Done')
+    return
+  }
+
+  if (cmd === 'depth') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/depth', { symbol: poolId, limit: 10 }))
+    s.stop('Done')
+    return
+  }
+
+  if (cmd === 'trades') {
+    const limit = await promptNumber('Limit', 20)
+    if (limit === null) return
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/trades', { symbol: poolId, limit }))
+    s.stop('Done')
+    return
+  }
+
+  if (cmd === 'kline') {
+    const interval = await promptSelect('Interval', [
+      { value: '1m', label: '1m' }, { value: '5m', label: '5m' },
+      { value: '30m', label: '30m' }, { value: '1h', label: '1h' },
+      { value: '1d', label: '1d' },
+    ])
+    if (!interval) return
+    const limit = await promptNumber('Limit', 50)
+    if (limit === null) return
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/kline', { symbol: poolId, interval, limit }))
+    s.stop('Done')
+  }
 }
 
 async function menuOrders() {
   const cmd = await promptSelect('Orders', [
-    { value: 'all',     label: 'all',     hint: 'all orders' },
-    { value: 'open',    label: 'open',    hint: 'open orders' },
-    { value: 'account', label: 'account', hint: 'orders by wallet address' },
+    { value: 'all',     label: 'all',     hint: 'all orders for an address' },
+    { value: 'open',    label: 'open',    hint: 'open orders for an address' },
+    { value: 'account', label: 'account', hint: 'account balances for an address' },
   ])
   if (!cmd) return
 
-  const limit = await promptNumber('Limit', 20)
-  if (limit === null) return
+  const myAddr = process.env.PRIVATE_KEY
+    ? (await import('viem/accounts')).privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`).address
+    : undefined
 
-  const s = p.spinner(); s.start('Fetching…')
-  if (cmd === 'all')  printResult(await fetchAPI('/api/orders', { limit }))
-  if (cmd === 'open') printResult(await fetchAPI('/api/orders/open', { limit }))
-  if (cmd === 'account') {
-    s.stop('')
-    const address = await promptText('Wallet address')
-    if (!address) return
-    const s2 = p.spinner(); s2.start('Fetching…')
-    printResult(await fetchAPI('/api/orders/account', { address, limit }))
-    s2.stop('Done')
+  const address = await promptText('Wallet address', myAddr ?? '')
+  if (!address) return
+
+  if (cmd === 'all') {
+    const limit = await promptNumber('Limit', 20)
+    if (limit === null) return
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/allOrders', { address, limit }))
+    s.stop('Done')
     return
   }
-  s.stop('Done')
+
+  if (cmd === 'open') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/openOrders', { address }))
+    s.stop('Done')
+    return
+  }
+
+  if (cmd === 'account') {
+    const s = p.spinner(); s.start('Fetching…')
+    printResult(await fetchAPI('/api/account', { address }))
+    s.stop('Done')
+  }
 }
 
 async function menuPredictions() {
@@ -392,10 +461,35 @@ async function menuWallets() {
 }
 
 async function menuLeaderboard() {
+  const type = await promptSelect('Type', [
+    { value: '', label: 'All' },
+    { value: 'user', label: 'Users' },
+    { value: 'agent', label: 'Agents' },
+  ])
+  if (type === null) return
+
+  const sortBy = await promptSelect('Sort by', [
+    { value: 'volume', label: 'Volume' },
+    { value: 'pnl', label: 'PnL' },
+  ])
+  if (sortBy === null) return
+
+  const window = await promptSelect('Window', [
+    { value: 'all', label: 'All time' },
+    { value: '24h', label: '24h' },
+    { value: '7d', label: '7 days' },
+    { value: '30d', label: '30 days' },
+  ])
+  if (window === null) return
+
   const limit = await promptNumber('Limit', 20)
   if (limit === null) return
+
+  const params: any = { limit, sortBy, window }
+  if (type) params.type = type
+
   const s = p.spinner(); s.start('Fetching…')
-  printResult(await fetchAPI('/api/leaderboard', { limit }))
+  printResult(await fetchAPI('/api/leaderboard', params))
   s.stop('Done')
 }
 
