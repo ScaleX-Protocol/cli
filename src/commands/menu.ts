@@ -3,9 +3,65 @@
  * Run: scalex menu
  */
 
-import { Cli, z } from 'incur'
+import { z } from 'incur'
 import * as p from '@clack/prompts'
 import { fetchAPI } from '../lib/api.js'
+
+// ── Brand colors (#F06718 — primary orange from frontend) ─────────────────────
+
+const R = '\x1b[0m'                             // reset
+const orange  = (s: string) => `\x1b[38;2;240;103;24m${s}${R}`
+const orangeBg = (s: string) => `\x1b[48;2;240;103;24m\x1b[38;2;20;20;20m${s}${R}`
+const dim     = (s: string) => `\x1b[2m${s}${R}`
+const bold    = (s: string) => `\x1b[1m${s}${R}`
+const white   = (s: string) => `\x1b[97m${s}${R}`
+
+async function printHeader() {
+  const agentId = process.env.SCALEX_AGENT_TOKEN_ID
+  const pk      = process.env.PRIVATE_KEY
+
+  let agentLabel = dim('no agent configured')
+  if (agentId && pk) {
+    try {
+      const { privateKeyToAccount } = await import('viem/accounts')
+      const addr = privateKeyToAccount(pk as `0x${string}`).address
+      const shortAddr = `${addr.slice(0, 6)}…${addr.slice(-4)}`
+
+      // try to get agent name from list
+      const listRes: any = await fetchAPI('/api/agents', { limit: 100 })
+      const entry = listRes?.data?.find((a: any) => String(a.agentTokenId) === String(agentId))
+      let name = `Agent #${agentId}`
+      if (entry?.metadataURI) {
+        try {
+          const meta: any = await (await fetch(entry.metadataURI)).json()
+          if (meta?.name) name = meta.name
+        } catch {}
+      }
+      agentLabel = `${orange(name)}  ${dim(`#${agentId} · ${shortAddr}`)}`
+    } catch {}
+  }
+
+  const width = 44
+  const top    = `╔${'═'.repeat(width)}╗`
+  const bottom = `╚${'═'.repeat(width)}╝`
+  const pad    = (s: string, n: number) => s + ' '.repeat(Math.max(0, n - stripAnsi(s).length))
+
+  const logo   = `${orangeBg(bold('  S '))} ${orange(bold('ScaleX'))} ${white('CLI')}`
+  const tag    = dim('agent-native interface · Base Sepolia')
+
+  console.log()
+  console.log(dim(top))
+  console.log(`${dim('║')} ${pad(logo, width - 2)} ${dim('║')}`)
+  console.log(`${dim('║')} ${pad(tag, width - 2)} ${dim('║')}`)
+  console.log(`${dim('║')} ${pad(agentLabel, width - 2)} ${dim('║')}`)
+  console.log(dim(bottom))
+  console.log()
+}
+
+// strip ANSI codes to measure visible string length
+function stripAnsi(s: string): string {
+  return s.replace(/\x1b\[[0-9;]*m/g, '')
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -38,7 +94,42 @@ async function promptSelect<T extends string>(
 }
 
 function printResult(data: unknown) {
-  console.log('\n' + JSON.stringify(data, null, 2))
+  const payload = (data as any)?.data ?? data
+
+  // Array → table
+  if (Array.isArray(payload) && payload.length > 0 && typeof payload[0] === 'object') {
+    const rows  = payload as Record<string, unknown>[]
+    const keys  = Object.keys(rows[0])
+    const cols  = keys.map(k => ({
+      key: k,
+      width: Math.min(30, Math.max(k.length, ...rows.map(r => String(r[k] ?? '').length))),
+    }))
+
+    const header = cols.map(c => orange(c.key.padEnd(c.width))).join('  ')
+    const sep    = dim(cols.map(c => '─'.repeat(c.width)).join('──'))
+    console.log('\n' + header)
+    console.log(sep)
+    for (const row of rows) {
+      console.log(cols.map(c => String(row[c.key] ?? '').slice(0, c.width).padEnd(c.width)).join('  '))
+    }
+    console.log(dim(`\n  ${rows.length} row${rows.length === 1 ? '' : 's'}`))
+    return
+  }
+
+  // Single object → key-value
+  if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+    const obj = payload as Record<string, unknown>
+    const keyW = Math.max(...Object.keys(obj).map(k => k.length))
+    console.log()
+    for (const [k, v] of Object.entries(obj)) {
+      const val = typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')
+      console.log(`  ${orange(k.padEnd(keyW))}  ${val}`)
+    }
+    console.log()
+    return
+  }
+
+  console.log('\n' + JSON.stringify(payload, null, 2))
 }
 
 // ── Section handlers ─────────────────────────────────────────────────────────
@@ -280,12 +371,11 @@ async function menuLeaderboard() {
 
 // ── Main menu ─────────────────────────────────────────────────────────────────
 
-export const menu = Cli.create('menu', { description: 'Interactive menu — browse and run commands with arrow keys' })
-  .command('', {
-    description: 'Launch interactive menu',
-    options: z.object({}),
-    async run() {
-      p.intro(' ScaleX CLI ')
+export const menuCommand = {
+  description: 'Interactive menu — browse and run commands with arrow keys',
+  options: z.object({}),
+  async run() {
+      await printHeader()
 
       while (true) {
         const section = await promptSelect('Select a section', [
@@ -317,4 +407,4 @@ export const menu = Cli.create('menu', { description: 'Interactive menu — brow
 
       p.outro('Bye!')
     },
-  })
+  }
